@@ -3,7 +3,6 @@ package noderunscript_test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -50,7 +49,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		workingDir, err = os.MkdirTemp("", "working-dir")
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(ioutil.WriteFile(filepath.Join(workingDir, "package.json"), nil, 0644)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(workingDir, "package.json"), nil, 0644)).To(Succeed())
 		os.Setenv("BP_NODE_RUN_SCRIPTS", "build,some-script")
 
 		npmExec = &fakes.Executable{}
@@ -109,7 +108,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 	context("when there is a yarn.lock", func() {
 		it.Before(func() {
-			Expect(ioutil.WriteFile(filepath.Join(workingDir, "yarn.lock"), nil, 0644)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(workingDir, "yarn.lock"), nil, 0644)).To(Succeed())
 			scriptManager.GetPackageManagerCall.Returns.String = "yarn"
 		})
 

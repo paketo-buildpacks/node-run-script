@@ -1,7 +1,6 @@
 package noderunscript_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -35,7 +34,7 @@ func testScriptManager(t *testing.T, context spec.G, it spec.S) {
 	context("GetPackageScripts", func() {
 
 		it("succeeds", func() {
-			Expect(ioutil.WriteFile(filepath.Join(workingDir, "package.json"), []byte(`
+			Expect(os.WriteFile(filepath.Join(workingDir, "package.json"), []byte(`
 			{
 				"name": "mypackage",
 				"scripts": {
@@ -54,7 +53,7 @@ func testScriptManager(t *testing.T, context spec.G, it spec.S) {
 		context("failure cases", func() {
 			context("when package.json is incorrectly formatted", func() {
 				it("fails", func() {
-					Expect(ioutil.WriteFile(filepath.Join(workingDir, "package.json"), []byte(`
+					Expect(os.WriteFile(filepath.Join(workingDir, "package.json"), []byte(`
 					{
 						"name": "mypackage"
 						"build": "mybuildcommand --args"
