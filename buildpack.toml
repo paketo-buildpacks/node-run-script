@@ -1,8 +1,8 @@
 api = "0.2"
 
 [buildpack]
-  id = "accrazed/node-run-script"
-  homepage = "https://github.com/accrazed/node-run-script"
+  id = "paketo-buildpacks/node-run-script"
+  homepage = "https://github.com/paketo-buildpacks/node-run-script"
   name = "Paketo Node-Run-Script Buildpack"
 
 [[stacks]]

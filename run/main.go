@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	noderunscript "github.com/accrazed/node-run-script"
+	noderunscript "github.com/paketo-buildpacks/node-run-script"
 	"github.com/paketo-buildpacks/packit"
 	"github.com/paketo-buildpacks/packit/chronos"
 	"github.com/paketo-buildpacks/packit/pexec"
