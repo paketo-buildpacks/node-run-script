@@ -50,6 +50,7 @@ func Build(npmExec Executable, yarnExec Executable, scriptManager PackageInterfa
 
 		duration, err := clock.Measure(func() error {
 			for _, script := range envScripts {
+				script = strings.TrimSpace(script)
 				logger.Action("Running '%s %s %s'", packageManager, execution.Args[0], script)
 
 				execution.Args[1] = script

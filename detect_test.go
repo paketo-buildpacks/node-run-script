@@ -45,6 +45,31 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		Expect(os.RemoveAll(workingDir)).To(Succeed())
 	})
 
+	context("when the working-dir doesn't contain yarn.lock", func() {
+		it.Before(func() {
+			scriptManager.GetPackageManagerCall.Returns.String = "npm"
+		})
+
+		it("defaults to npm and returns a plan that requires node and npm", func() {
+			result, err := detect(packit.DetectContext{
+				WorkingDir: workingDir,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Plan).To(Equal(packit.BuildPlan{
+				Requires: []packit.BuildPlanRequirement{
+					{
+						Name:     "node",
+						Metadata: noderunscript.BuildPlanMetadata{Build: true},
+					},
+					{
+						Name:     "npm",
+						Metadata: noderunscript.BuildPlanMetadata{Build: true},
+					},
+				},
+			}))
+		})
+	})
+
 	context("when the working-dir contains yarn.lock", func() {
 		it.Before(func() {
 			scriptManager.GetPackageManagerCall.Returns.String = "yarn"
@@ -71,28 +96,17 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		})
 	})
 
-	context("when the working-dir doesn't contain yarn.lock", func() {
+	context("when env var $BP_NODE_RUN_SCRIPTS has spaces among commas", func() {
 		it.Before(func() {
 			scriptManager.GetPackageManagerCall.Returns.String = "npm"
+			os.Setenv("BP_NODE_RUN_SCRIPTS", "build, some-script ")
 		})
 
-		it("defaults to npm and returns a plan that requires node and npm", func() {
-			result, err := detect(packit.DetectContext{
+		it("trims the whitespace and successfully detects the scripts", func() {
+			_, err := detect(packit.DetectContext{
 				WorkingDir: workingDir,
 			})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result.Plan).To(Equal(packit.BuildPlan{
-				Requires: []packit.BuildPlanRequirement{
-					{
-						Name:     "node",
-						Metadata: noderunscript.BuildPlanMetadata{Build: true},
-					},
-					{
-						Name:     "npm",
-						Metadata: noderunscript.BuildPlanMetadata{Build: true},
-					},
-				},
-			}))
 		})
 	})
 
@@ -178,7 +192,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 					WorkingDir: workingDir,
 				})
 
-				Expect(err).To(MatchError("expected script(s) [\"script1\", \"script2\", \"script3\"] from $BP_NODE_RUN_SCRIPTS to exist in package.json"))
+				Expect(err).To(MatchError("expected script(s) script1, script2, script3 from $BP_NODE_RUN_SCRIPTS to exist in package.json"))
 			})
 		})
 

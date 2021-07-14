@@ -135,6 +135,34 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		})
 	})
 
+	context("when env var $BP_NODE_RUN_SCRIPTS has spaces among commas", func() {
+		it.Before(func() {
+			scriptManager.GetPackageManagerCall.Returns.String = "npm"
+			os.Setenv("BP_NODE_RUN_SCRIPTS", "build, some-script ")
+		})
+
+		it("trims the whitespace and successfully detects the scripts", func() {
+			_, err := build(packit.BuildContext{
+				WorkingDir: workingDir,
+				CNBPath:    cnbDir,
+				Stack:      "some-stack",
+				BuildpackInfo: packit.BuildpackInfo{
+					Name:    "Some Buildpack",
+					Version: "some-version",
+				},
+				Plan: packit.BuildpackPlan{
+					Entries: []packit.BuildpackPlanEntry{},
+				},
+				Layers: packit.Layers{Path: layersDir},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(npmExec.ExecuteCall.CallCount).To(Equal(2))
+			Expect(npmExec.ExecuteCall.Receives.Execution.Args).To(
+				Equal([]string{"run-script", "some-script"}))
+		})
+	})
+
 	context("when there is a custom project path set", func() {
 		it.Before(func() {
 			var err error
