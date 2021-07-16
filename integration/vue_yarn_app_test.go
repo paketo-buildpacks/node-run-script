@@ -55,7 +55,7 @@ func testVueYarnApp(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			var logs fmt.Stringer
-			image, logs, err = pack.WithNoColor().WithVerbose().Build.
+			image, logs, err = pack.WithNoColor().Build.
 				WithBuildpacks(
 					settings.Buildpacks.NodeEngine.Online,
 					settings.Buildpacks.Yarn.Online,
@@ -74,7 +74,13 @@ func testVueYarnApp(t *testing.T, context spec.G, it spec.S) {
 				"  Executing build process",
 				"    Executing scripts",
 				"      Running 'yarn run build'",
+				MatchRegexp(`        yarn run v\d+\.\d+\.\d+`),
+				"        $ vue-cli-service build",
 			))
+			Expect(logs).To(ContainLines(
+				"         DONE  Build complete. The dist directory is ready to be deployed.",
+			))
+
 			Expect(logs).To(ContainLines(MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`)))
 
 			container, err = docker.Container.Run.

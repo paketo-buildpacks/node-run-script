@@ -73,6 +73,12 @@ func testVueNpmApp(t *testing.T, context spec.G, it spec.S) {
 				"  Executing build process",
 				"    Executing scripts",
 				"      Running 'npm run-script build'",
+				"        ",
+				MatchRegexp(`        > vue_app@\d+\.\d+\.\d+ build \/workspace`),
+				"        > vue-cli-service build",
+			))
+			Expect(logs).To(ContainLines(
+				"         DONE  Build complete. The dist directory is ready to be deployed.",
 			))
 			Expect(logs).To(ContainLines(MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`)))
 
