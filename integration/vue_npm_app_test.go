@@ -74,7 +74,7 @@ func testVueNpmApp(t *testing.T, context spec.G, it spec.S) {
 				"    Executing scripts",
 				"      Running 'npm run-script build'",
 				"        ",
-				MatchRegexp(`        > vue_app@\d+\.\d+\.\d+ build \/workspace`),
+				MatchRegexp(`        > vue_app@\d+\.\d+\.\d+ build`),
 				"        > vue-cli-service build",
 			))
 			Expect(logs).To(ContainLines(
