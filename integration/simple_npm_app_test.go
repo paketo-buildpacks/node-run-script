@@ -72,14 +72,14 @@ func testSimpleNPMApp(t *testing.T, context spec.G, it spec.S) {
 				"    Executing scripts",
 				"      Running 'npm run-script test_script_1'",
 				"        ",
-				MatchRegexp(`        > simple_npm_app@\d+\.\d+\.\d+ test_script_1 \/workspace`),
+				MatchRegexp(`        > simple_npm_app@\d+\.\d+\.\d+ test_script_1`),
 				"        > echo \"some commands\"",
 				"        ",
 				"        some commands",
 				"        ",
 				"      Running 'npm run-script test_script_2'",
 				"        ",
-				MatchRegexp(`        > simple_npm_app@\d+\.\d+\.\d+ test_script_2 \/workspace`),
+				MatchRegexp(`        > simple_npm_app@\d+\.\d+\.\d+ test_script_2`),
 				"        > touch dummyfile.txt",
 			))
 			Expect(logs).To(ContainLines(MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`)))
