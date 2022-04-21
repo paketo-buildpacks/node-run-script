@@ -7,7 +7,7 @@ import (
 
 	noderunscript "github.com/paketo-buildpacks/node-run-script"
 	"github.com/paketo-buildpacks/node-run-script/fakes"
-	"github.com/paketo-buildpacks/packit"
+	"github.com/paketo-buildpacks/packit/v2"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
