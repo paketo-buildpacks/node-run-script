@@ -49,51 +49,56 @@ func testSimpleYarnApp(t *testing.T, context spec.G, it spec.S) {
 			Expect(os.RemoveAll(source)).To(Succeed())
 		})
 
-		it("builds an OCI image for a simple yarn app", func() {
-			var err error
-			source, err = occam.Source(filepath.Join("testdata", "simple_yarn_app"))
-			Expect(err).NotTo(HaveOccurred())
+		for _, b := range settings.Config.Builders {
+			var builder string = b
+			context(fmt.Sprintf("with %s builder", builder), func() {
+				it("builds an OCI image for a simple yarn app", func() {
+					var err error
+					source, err = occam.Source(filepath.Join("testdata", "simple_yarn_app"))
+					Expect(err).NotTo(HaveOccurred())
 
-			var logs fmt.Stringer
-			image, logs, err = pack.WithNoColor().Build.
-				WithBuildpacks(
-					settings.Buildpacks.NodeEngine.Online,
-					settings.Buildpacks.Yarn.Online,
-					settings.Buildpacks.YarnInstall.Online,
-					settings.Buildpacks.NodeRunScript.Online,
-				).
-				WithEnv(map[string]string{"BP_NODE_RUN_SCRIPTS": "test_script_1,test_script_2"}).
-				WithPullPolicy("never").
-				Execute(name, source)
-			Expect(err).NotTo(HaveOccurred(), logs.String())
+					var logs fmt.Stringer
+					image, logs, err = pack.WithNoColor().Build.
+						WithBuildpacks(
+							settings.Buildpacks.NodeEngine.Online,
+							settings.Buildpacks.Yarn.Online,
+							settings.Buildpacks.YarnInstall.Online,
+							settings.Buildpacks.NodeRunScript.Online,
+						).
+						WithEnv(map[string]string{"BP_NODE_RUN_SCRIPTS": "test_script_1,test_script_2"}).
+						WithPullPolicy("never").
+						Execute(name, source)
+					Expect(err).NotTo(HaveOccurred(), logs.String())
 
-			Expect(logs).To(ContainLines(
-				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
-				"  Executing build process",
-				"    Executing scripts",
-				"      Running 'yarn run test_script_1'",
-				MatchRegexp(`        yarn run v\d+\.\d+\.\d+`),
-				"        $ echo \"some commands\"",
-				"        some commands",
-				MatchRegexp(`      Done in \d+\.\d+s\.`),
-				"        ",
-				"      Running 'yarn run test_script_2'",
-				MatchRegexp(`        yarn run v\d+\.\d+\.\d+`),
-				"        $ touch dummyfile.txt",
-				MatchRegexp(`      Done in \d+\.\d+s\.`),
-			))
-			Expect(logs).To(ContainLines(MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`)))
+					Expect(logs).To(ContainLines(
+						MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
+						"  Executing build process",
+						"    Executing scripts",
+						"      Running 'yarn run test_script_1'",
+						MatchRegexp(`        yarn run v\d+\.\d+\.\d+`),
+						"        $ echo \"some commands\"",
+						"        some commands",
+						MatchRegexp(`      Done in \d+\.\d+s\.`),
+						"        ",
+						"      Running 'yarn run test_script_2'",
+						MatchRegexp(`        yarn run v\d+\.\d+\.\d+`),
+						"        $ touch dummyfile.txt",
+						MatchRegexp(`      Done in \d+\.\d+s\.`),
+					))
+					Expect(logs).To(ContainLines(MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`)))
 
-			container, err = docker.Container.Run.
-				WithCommand("ls -al /workspace/").
-				Execute(image.ID)
-			Expect(err).NotTo(HaveOccurred())
+					container, err = docker.Container.Run.
+						WithCommand("ls -al /workspace/").
+						Execute(image.ID)
+					Expect(err).NotTo(HaveOccurred())
 
-			Eventually(func() string {
-				cLogs, err := docker.Container.Logs.Execute(container.ID)
-				Expect(err).NotTo(HaveOccurred())
-				return cLogs.String()
-			}).Should(ContainSubstring("dummyfile.txt"))
-		})
+					Eventually(func() string {
+						cLogs, err := docker.Container.Logs.Execute(container.ID)
+						Expect(err).NotTo(HaveOccurred())
+						return cLogs.String()
+					}).Should(ContainSubstring("dummyfile.txt"))
+				})
+			})
+		}
 	})
 }

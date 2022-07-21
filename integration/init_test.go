@@ -41,10 +41,11 @@ var settings struct {
 		Name string
 	}
 	Config struct {
-		NodeEngine  string `json:"node-engine"`
-		NpmInstall  string `json:"npm-install"`
-		Yarn        string `json:"yarn"`
-		YarnInstall string `json:"yarn-install"`
+		NodeEngine  string   `json:"node-engine"`
+		NpmInstall  string   `json:"npm-install"`
+		Yarn        string   `json:"yarn"`
+		YarnInstall string   `json:"yarn-install"`
+		Builders    []string `json:"builders"`
 	}
 }
 
