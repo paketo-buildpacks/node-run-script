@@ -3,7 +3,7 @@ api = "0.7"
 [buildpack]
   homepage = "https://github.com/paketo-buildpacks/node-run-script"
   id = "paketo-buildpacks/node-run-script"
-  name = "Paketo Node Run Script Buildpack"
+  name = "Paketo Buildpack for Node Run Script"
 
   [[buildpack.licenses]]
     type = "Apache-2.0"
