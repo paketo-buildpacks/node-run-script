@@ -8,10 +8,11 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	. "github.com/onsi/gomega"
 	"github.com/paketo-buildpacks/occam"
 	"github.com/sclevine/spec"
 	"github.com/sclevine/spec/report"
+
+	. "github.com/onsi/gomega"
 )
 
 var settings struct {
@@ -20,7 +21,7 @@ var settings struct {
 			Online string
 		}
 
-		NpmInstall struct {
+		NPMInstall struct {
 			Online string
 		}
 
@@ -42,7 +43,7 @@ var settings struct {
 	}
 	Config struct {
 		NodeEngine  string `json:"node-engine"`
-		NpmInstall  string `json:"npm-install"`
+		NPMInstall  string `json:"npm-install"`
 		Yarn        string `json:"yarn"`
 		YarnInstall string `json:"yarn-install"`
 	}
@@ -77,8 +78,8 @@ func TestIntegration(t *testing.T) {
 		Execute(settings.Config.NodeEngine)
 	Expect(err).NotTo(HaveOccurred())
 
-	settings.Buildpacks.NpmInstall.Online, err = buildpackStore.Get.
-		Execute(settings.Config.NpmInstall)
+	settings.Buildpacks.NPMInstall.Online, err = buildpackStore.Get.
+		Execute(settings.Config.NPMInstall)
 	Expect(err).NotTo(HaveOccurred())
 
 	settings.Buildpacks.Yarn.Online, err = buildpackStore.Get.
@@ -95,7 +96,7 @@ func TestIntegration(t *testing.T) {
 	suite("SimpleYarnApp", testSimpleYarnApp)
 	suite("SimpleNPMApp", testSimpleNPMApp)
 	suite("ProjectPathApp", testProjectPathApp)
-	suite("VueNpmApp", testVueNpmApp)
+	suite("VueNPMApp", testVueNPMApp)
 	suite("VueYarnApp", testVueYarnApp)
 	suite.Run(t)
 }

@@ -58,7 +58,7 @@ func testSimpleNPMApp(t *testing.T, context spec.G, it spec.S) {
 			image, logs, err = pack.WithNoColor().Build.
 				WithBuildpacks(
 					settings.Buildpacks.NodeEngine.Online,
-					settings.Buildpacks.NpmInstall.Online,
+					settings.Buildpacks.NPMInstall.Online,
 					settings.Buildpacks.NodeRunScript.Online,
 				).
 				WithEnv(map[string]string{"BP_NODE_RUN_SCRIPTS": "test_script_1,test_script_2"}).
@@ -69,20 +69,21 @@ func testSimpleNPMApp(t *testing.T, context spec.G, it spec.S) {
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
 				"  Executing build process",
-				"    Executing scripts",
-				"      Running 'npm run-script test_script_1'",
-				"        ",
-				MatchRegexp(`        > simple_npm_app@\d+\.\d+\.\d+ test_script_1`),
-				"        > echo \"some commands\"",
-				"        ",
-				"        some commands",
-				"        ",
-				"      Running 'npm run-script test_script_2'",
-				"        ",
-				MatchRegexp(`        > simple_npm_app@\d+\.\d+\.\d+ test_script_2`),
-				"        > touch dummyfile.txt",
+				"    Running 'npm run test_script_1'",
+				"      ",
+				MatchRegexp(`      > simple_npm_app@\d+\.\d+\.\d+ test_script_1`),
+				"      > echo \"some commands\"",
+				"      ",
+				"      some commands",
+				"",
+				"    Running 'npm run test_script_2'",
+				"      ",
+				MatchRegexp(`      > simple_npm_app@\d+\.\d+\.\d+ test_script_2`),
+				"      > touch dummyfile.txt",
+				"      ",
+				"",
+				MatchRegexp(`    Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
 			))
-			Expect(logs).To(ContainLines(MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`)))
 
 			container, err = docker.Container.Run.
 				WithCommand("ls -al /workspace/").

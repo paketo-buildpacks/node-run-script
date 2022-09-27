@@ -11,13 +11,20 @@ import (
 )
 
 func main() {
-	npmExec := pexec.NewExecutable("npm")
-	yarnExec := pexec.NewExecutable("yarn")
-	scriptManager := noderunscript.NewScriptManager()
-	logger := scribe.NewLogger(os.Stdout)
+	environment := noderunscript.Environment{
+		NodeRunScripts:  os.Getenv("BP_NODE_RUN_SCRIPTS"),
+		NodeProjectPath: os.Getenv("BP_NODE_PROJECT_PATH"),
+		LogLevel:        os.Getenv("BP_LOG_LEVEL"),
+	}
 
 	packit.Run(
-		noderunscript.Detect(scriptManager),
-		noderunscript.Build(npmExec, yarnExec, scriptManager, chronos.DefaultClock, logger),
+		noderunscript.Detect(environment),
+		noderunscript.Build(
+			pexec.NewExecutable("npm"),
+			pexec.NewExecutable("yarn"),
+			chronos.DefaultClock,
+			scribe.NewLogger(os.Stdout).WithLevel(environment.LogLevel),
+			environment,
+		),
 	)
 }

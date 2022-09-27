@@ -13,7 +13,7 @@ import (
 	. "github.com/paketo-buildpacks/occam/matchers"
 )
 
-func testVueNpmApp(t *testing.T, context spec.G, it spec.S) {
+func testVueNPMApp(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect     = NewWithT(t).Expect
 		Eventually = NewWithT(t).Eventually
@@ -58,12 +58,9 @@ func testVueNpmApp(t *testing.T, context spec.G, it spec.S) {
 			image, logs, err = pack.WithNoColor().Build.
 				WithBuildpacks(
 					settings.Buildpacks.NodeEngine.Online,
-					settings.Buildpacks.NpmInstall.Online,
+					settings.Buildpacks.NPMInstall.Online,
 					settings.Buildpacks.NodeRunScript.Online,
 				).
-				WithEnv(map[string]string{
-					"BP_NODE_RUN_SCRIPTS": "build",
-					"NODE_ENV":            "development"}).
 				WithPullPolicy("never").
 				Execute(name, source)
 			Expect(err).NotTo(HaveOccurred(), logs.String())
@@ -71,16 +68,15 @@ func testVueNpmApp(t *testing.T, context spec.G, it spec.S) {
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
 				"  Executing build process",
-				"    Executing scripts",
-				"      Running 'npm run-script build'",
-				"        ",
-				MatchRegexp(`        > vue_app@\d+\.\d+\.\d+ build`),
-				"        > vue-cli-service build",
+				"    Running 'npm run build'",
+				"      ",
+				MatchRegexp(`      > vue_app@\d+\.\d+\.\d+ build`),
+				"      > vue-cli-service build",
 			))
 			Expect(logs).To(ContainLines(
-				"         DONE  Build complete. The dist directory is ready to be deployed.",
+				"       DONE  Build complete. The dist directory is ready to be deployed.",
 			))
-			Expect(logs).To(ContainLines(MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`)))
+			Expect(logs).To(ContainLines(MatchRegexp(`    Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`)))
 
 			container, err = docker.Container.Run.
 				WithCommand("ls -al /workspace/dist/").
