@@ -62,9 +62,6 @@ func testVueYarnApp(t *testing.T, context spec.G, it spec.S) {
 					settings.Buildpacks.YarnInstall.Online,
 					settings.Buildpacks.NodeRunScript.Online,
 				).
-				WithEnv(map[string]string{
-					"BP_NODE_RUN_SCRIPTS": "build",
-					"NODE_ENV":            "development"}).
 				WithPullPolicy("never").
 				Execute(name, source)
 			Expect(err).NotTo(HaveOccurred(), logs.String())
@@ -72,16 +69,15 @@ func testVueYarnApp(t *testing.T, context spec.G, it spec.S) {
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
 				"  Executing build process",
-				"    Executing scripts",
-				"      Running 'yarn run build'",
-				MatchRegexp(`        yarn run v\d+\.\d+\.\d+`),
-				"        $ vue-cli-service build",
+				"    Running 'yarn run build'",
+				MatchRegexp(`      yarn run v\d+\.\d+\.\d+`),
+				"      $ vue-cli-service build",
 			))
 			Expect(logs).To(ContainLines(
-				"         DONE  Build complete. The dist directory is ready to be deployed.",
+				"       DONE  Build complete. The dist directory is ready to be deployed.",
 			))
 
-			Expect(logs).To(ContainLines(MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`)))
+			Expect(logs).To(ContainLines(MatchRegexp(`    Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`)))
 
 			container, err = docker.Container.Run.
 				WithCommand("ls -al /workspace/dist/").

@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	noderunscript "github.com/paketo-buildpacks/node-run-script"
-	"github.com/paketo-buildpacks/node-run-script/fakes"
 	"github.com/paketo-buildpacks/packit/v2"
+	"github.com/paketo-buildpacks/packit/v2/fs"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
@@ -17,9 +17,8 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
-		workingDir    string
-		detect        packit.DetectFunc
-		scriptManager *fakes.PackageInterface
+		workingDir string
+		detect     packit.DetectFunc
 	)
 
 	it.Before(func() {
@@ -27,30 +26,22 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		workingDir, err = os.MkdirTemp("", "working-dir")
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(os.Setenv("BP_NODE_RUN_SCRIPTS", "build")).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(workingDir, "package.json"), []byte(`{
+			"scripts": {
+				"build": "mybuildcommand --args",
+				"some-script": "somecommand --args"
+			}
+		}`), 0600)).To(Succeed())
 
-		Expect(os.WriteFile(filepath.Join(workingDir, "package.json"), nil, 0644)).To(Succeed())
-
-		scriptManager = &fakes.PackageInterface{}
-		scriptManager.GetPackageScriptsCall.Returns.MapStringString = map[string]string{
-			"build":       "mybuildcommand --args",
-			"some-script": "somecommands --args",
-		}
-
-		detect = noderunscript.Detect(scriptManager)
+		detect = noderunscript.Detect(noderunscript.Environment{})
 	})
 
 	it.After(func() {
-		Expect(os.Unsetenv("BP_NODE_RUN_SCRIPTS")).To(Succeed())
 		Expect(os.RemoveAll(workingDir)).To(Succeed())
 	})
 
-	context("when the working-dir doesn't contain yarn.lock", func() {
-		it.Before(func() {
-			scriptManager.GetPackageManagerCall.Returns.String = "npm"
-		})
-
-		it("defaults to npm and returns a plan that requires node and npm", func() {
+	context("when using npm", func() {
+		it("returns a plan that requires node and npm", func() {
 			result, err := detect(packit.DetectContext{
 				WorkingDir: workingDir,
 			})
@@ -74,10 +65,9 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		})
 	})
 
-	context("when the working-dir contains yarn.lock", func() {
+	context("when using yarn", func() {
 		it.Before(func() {
-			scriptManager.GetPackageManagerCall.Returns.String = "yarn"
-			Expect(os.WriteFile(filepath.Join(workingDir, "yarn.lock"), nil, 0644)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(workingDir, "yarn.lock"), nil, 0600)).To(Succeed())
 		})
 
 		it("returns a plan that requires node and yarn", func() {
@@ -106,8 +96,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 
 	context("when env var $BP_NODE_RUN_SCRIPTS has spaces among commas", func() {
 		it.Before(func() {
-			scriptManager.GetPackageManagerCall.Returns.String = "npm"
-			Expect(os.Setenv("BP_NODE_RUN_SCRIPTS", "build, some-script ")).To(Succeed())
+			detect = noderunscript.Detect(noderunscript.Environment{NodeRunScripts: "build, some-script"})
 		})
 
 		it("trims the whitespace and successfully detects the scripts", func() {
@@ -120,26 +109,20 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 
 	context("when env var $BP_NODE_PROJECT_PATH is set", func() {
 		it.Before(func() {
-			Expect(os.Remove(filepath.Join(workingDir, "package.json"))).To(Succeed())
-
 			customPath, err := os.MkdirTemp(workingDir, "custom-project-path")
 			Expect(err).NotTo(HaveOccurred())
 			customPath = filepath.Base(customPath)
-			Expect(os.Setenv("BP_NODE_PROJECT_PATH", customPath)).To(Succeed())
 
-			Expect(os.WriteFile(filepath.Join(workingDir, customPath, "yarn.lock"), nil, 0644)).To(Succeed())
-			Expect(os.WriteFile(filepath.Join(workingDir, customPath, "package.json"), nil, 0644)).To(Succeed())
-		})
+			Expect(os.WriteFile(filepath.Join(workingDir, customPath, "yarn.lock"), nil, 0600)).To(Succeed())
+			Expect(fs.Move(filepath.Join(workingDir, "package.json"), filepath.Join(workingDir, customPath, "package.json"))).To(Succeed())
 
-		it.After(func() {
-			Expect(os.Unsetenv("BP_NODE_PROJECT_PATH")).To(Succeed())
+			detect = noderunscript.Detect(noderunscript.Environment{
+				NodeRunScripts:  "build",
+				NodeProjectPath: customPath,
+			})
 		})
 
 		context("when the custom project path contains yarn.lock", func() {
-			it.Before(func() {
-				scriptManager.GetPackageManagerCall.Returns.String = "yarn"
-			})
-
 			it("returns a plan that requires node and yarn", func() {
 				result, err := detect(packit.DetectContext{
 					WorkingDir: workingDir,
@@ -166,20 +149,6 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	context("failure cases", func() {
-		context("when the env var of \"$BP_NODE_RUN_SCRIPTS\" is not set", func() {
-			it.Before(func() {
-				Expect(os.Unsetenv("BP_NODE_RUN_SCRIPTS")).To(Succeed())
-			})
-
-			it("returns a failure", func() {
-				_, err := detect(packit.DetectContext{
-					WorkingDir: workingDir,
-				})
-
-				Expect(err).To(MatchError("expected value from $BP_NODE_RUN_SCRIPTS to be set"))
-			})
-		})
-
 		context("if package.json is absent", func() {
 			it.Before(func() {
 				Expect(os.Remove(filepath.Join(workingDir, "package.json"))).To(Succeed())
@@ -190,13 +159,15 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 					WorkingDir: workingDir,
 				})
 
-				Expect(err).To(MatchError("expected file package.json to exist"))
+				Expect(err).To(MatchError(ContainSubstring("no such file or directory")))
 			})
 		})
 
 		context("if any of the scripts in \"$BP_NODE_RUN_SCRIPTS\" does not exist in package.json", func() {
 			it.Before(func() {
-				Expect(os.Setenv("BP_NODE_RUN_SCRIPTS", "build,script1,some-script,script2,script3")).To(Succeed())
+				detect = noderunscript.Detect(noderunscript.Environment{
+					NodeRunScripts: "build,script1,some-script,script2,script3",
+				})
 			})
 
 			it("returns an error", func() {
@@ -204,13 +175,16 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 					WorkingDir: workingDir,
 				})
 
-				Expect(err).To(MatchError("expected script(s) script1, script2, script3 from $BP_NODE_RUN_SCRIPTS to exist in package.json"))
+				Expect(err).To(MatchError("could not find script(s) [script1 script2 script3] in package.json"))
 			})
 		})
 
 		context("if $BP_NODE_PROJECT_PATH leads to a directory that doesn't exist", func() {
 			it.Before(func() {
-				Expect(os.Setenv("BP_NODE_PROJECT_PATH", "not_a_real_directory")).To(Succeed())
+				detect = noderunscript.Detect(noderunscript.Environment{
+					NodeRunScripts:  "build",
+					NodeProjectPath: "not_a_real_directory",
+				})
 			})
 
 			it("returns an error", func() {
@@ -218,9 +192,8 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 					WorkingDir: workingDir,
 				})
 
-				Expect(err).To(MatchError("expected value from $BP_NODE_PROJECT_PATH [" + workingDir + "/not_a_real_directory] to be an existing directory"))
+				Expect(err).To(MatchError(ContainSubstring("no such file or directory")))
 			})
-
 		})
 	})
 }

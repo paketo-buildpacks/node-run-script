@@ -12,6 +12,7 @@ import (
 	"github.com/paketo-buildpacks/node-run-script/fakes"
 	"github.com/paketo-buildpacks/packit/v2"
 	"github.com/paketo-buildpacks/packit/v2/chronos"
+	"github.com/paketo-buildpacks/packit/v2/fs"
 	"github.com/paketo-buildpacks/packit/v2/pexec"
 	"github.com/paketo-buildpacks/packit/v2/scribe"
 	"github.com/sclevine/spec"
@@ -30,12 +31,12 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		build packit.BuildFunc
 
-		timestamp     time.Time
-		logger        scribe.Logger
-		loggerBuffer  *bytes.Buffer
-		npmExec       *fakes.Executable
-		yarnExec      *fakes.Executable
-		scriptManager *fakes.PackageInterface
+		timestamp    time.Time
+		clock        chronos.Clock
+		logger       scribe.Logger
+		loggerBuffer *bytes.Buffer
+		npmExec      *fakes.Executable
+		yarnExec     *fakes.Executable
 	)
 
 	it.Before(func() {
@@ -49,27 +50,25 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		workingDir, err = os.MkdirTemp("", "working-dir")
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(os.WriteFile(filepath.Join(workingDir, "package.json"), nil, 0644)).To(Succeed())
-		Expect(os.Setenv("BP_NODE_RUN_SCRIPTS", "build,some-script")).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(workingDir, "package.json"), []byte(`{
+			"scripts": {
+				"build": "echo \"script build running!\"",
+				"some-script": "echo \"script some-script running!\""
+			}
+		}`), 0600)).To(Succeed())
 
 		npmExec = &fakes.Executable{}
 		yarnExec = &fakes.Executable{}
 
-		scriptManager = &fakes.PackageInterface{}
-		scriptManager.GetPackageScriptsCall.Returns.MapStringString = map[string]string{
-			"build":       "echo \"script build running!\"",
-			"some-script": "echo \"script some-script running!\"",
-		}
-
 		timestamp = time.Now()
-		clock := chronos.NewClock(func() time.Time {
+		clock = chronos.NewClock(func() time.Time {
 			return timestamp
 		})
 
 		loggerBuffer = bytes.NewBuffer(nil)
 		logger = scribe.NewLogger(loggerBuffer)
 
-		build = noderunscript.Build(npmExec, yarnExec, scriptManager, clock, logger)
+		build = noderunscript.Build(npmExec, yarnExec, clock, logger, noderunscript.Environment{})
 	})
 
 	it.After(func() {
@@ -78,11 +77,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		Expect(os.RemoveAll(workingDir)).To(Succeed())
 	})
 
-	context("when there is no yarn.lock", func() {
-		it.Before(func() {
-			scriptManager.GetPackageManagerCall.Returns.String = "npm"
-		})
-
+	context("when using npm", func() {
 		it("runs npm commands", func() {
 			_, err := build(packit.BuildContext{
 				WorkingDir: workingDir,
@@ -99,17 +94,15 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(npmExec.ExecuteCall.CallCount).To(Equal(2))
-			Expect(npmExec.ExecuteCall.Receives.Execution.Args).To(
-				Equal([]string{"run-script", "some-script"}))
+			Expect(npmExec.ExecuteCall.CallCount).To(Equal(1))
+			Expect(npmExec.ExecuteCall.Receives.Execution.Args).To(Equal([]string{"run", "build"}))
 			Expect(npmExec.ExecuteCall.Receives.Execution.Dir).To(Equal(workingDir))
 		})
 	})
 
-	context("when there is a yarn.lock", func() {
+	context("when using yarn", func() {
 		it.Before(func() {
-			Expect(os.WriteFile(filepath.Join(workingDir, "yarn.lock"), nil, 0644)).To(Succeed())
-			scriptManager.GetPackageManagerCall.Returns.String = "yarn"
+			Expect(os.WriteFile(filepath.Join(workingDir, "yarn.lock"), nil, 0600)).To(Succeed())
 		})
 
 		it("runs yarn commands", func() {
@@ -128,17 +121,23 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(yarnExec.ExecuteCall.CallCount).To(Equal(2))
-			Expect(yarnExec.ExecuteCall.Receives.Execution.Args).To(
-				Equal([]string{"run", "some-script"}))
+			Expect(yarnExec.ExecuteCall.CallCount).To(Equal(1))
+			Expect(yarnExec.ExecuteCall.Receives.Execution.Args).To(Equal([]string{"run", "build"}))
 			Expect(yarnExec.ExecuteCall.Receives.Execution.Dir).To(Equal(workingDir))
 		})
 	})
 
 	context("when env var $BP_NODE_RUN_SCRIPTS has spaces among commas", func() {
+		var executions []pexec.Execution
 		it.Before(func() {
-			scriptManager.GetPackageManagerCall.Returns.String = "npm"
-			Expect(os.Setenv("BP_NODE_RUN_SCRIPTS", "build, some-script ")).To(Succeed())
+			npmExec.ExecuteCall.Stub = func(execution pexec.Execution) error {
+				executions = append(executions, execution)
+				return nil
+			}
+
+			build = noderunscript.Build(npmExec, yarnExec, clock, logger, noderunscript.Environment{
+				NodeRunScripts: "build, some-script",
+			})
 		})
 
 		it("trims the whitespace and successfully detects the scripts", func() {
@@ -157,9 +156,9 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(npmExec.ExecuteCall.CallCount).To(Equal(2))
-			Expect(npmExec.ExecuteCall.Receives.Execution.Args).To(
-				Equal([]string{"run-script", "some-script"}))
+			Expect(executions).To(HaveLen(2))
+			Expect(executions[0].Args).To(Equal([]string{"run", "build"}))
+			Expect(executions[1].Args).To(Equal([]string{"run", "some-script"}))
 		})
 	})
 
@@ -168,18 +167,15 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			var err error
 			projectPath, err = os.MkdirTemp(workingDir, "custom-project-path")
 			Expect(err).NotTo(HaveOccurred())
+
 			customPath := filepath.Base(projectPath)
-			Expect(os.Setenv("BP_NODE_PROJECT_PATH", customPath)).To(Succeed())
 
-			Expect(os.WriteFile(filepath.Join(workingDir, customPath, "yarn.lock"), nil, 0644)).To(Succeed())
-			Expect(os.WriteFile(filepath.Join(workingDir, customPath, "package.json"), nil, 0644)).To(Succeed())
-			Expect(os.Remove(filepath.Join(workingDir, "package.json"))).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(workingDir, customPath, "yarn.lock"), nil, 0600)).To(Succeed())
+			Expect(fs.Move(filepath.Join(workingDir, "package.json"), filepath.Join(workingDir, customPath, "package.json"))).To(Succeed())
 
-			scriptManager.GetPackageManagerCall.Returns.String = "yarn"
-		})
-
-		it.After(func() {
-			Expect(os.Unsetenv("BP_NODE_PROJECT_PATH")).To(Succeed())
+			build = noderunscript.Build(npmExec, yarnExec, clock, logger, noderunscript.Environment{
+				NodeProjectPath: customPath,
+			})
 		})
 
 		it("works and runs the correct commands", func() {
@@ -198,18 +194,40 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(yarnExec.ExecuteCall.CallCount).To(Equal(2))
+			Expect(yarnExec.ExecuteCall.CallCount).To(Equal(1))
 			Expect(yarnExec.ExecuteCall.Receives.Execution.Args).To(
-				Equal([]string{"run", "some-script"}))
+				Equal([]string{"run", "build"}))
 			Expect(yarnExec.ExecuteCall.Receives.Execution.Dir).To(Equal(projectPath))
 		})
 	})
 
 	context("failure cases", func() {
+		context("when finding the scripts to run fails", func() {
+			it.Before(func() {
+				Expect(os.Remove(filepath.Join(workingDir, "package.json"))).To(Succeed())
+			})
+
+			it("returns an error", func() {
+				_, err := build(packit.BuildContext{
+					WorkingDir: workingDir,
+					CNBPath:    cnbDir,
+					Stack:      "some-stack",
+					BuildpackInfo: packit.BuildpackInfo{
+						Name:    "Some Buildpack",
+						Version: "some-version",
+					},
+					Plan: packit.BuildpackPlan{
+						Entries: []packit.BuildpackPlanEntry{},
+					},
+					Layers: packit.Layers{Path: layersDir},
+				})
+				Expect(err).To(MatchError(ContainSubstring("failed to find scripts to run")))
+				Expect(err).To(MatchError(ContainSubstring("no such file or directory")))
+			})
+		})
+
 		context("when the script getting run has an error", func() {
 			it.Before(func() {
-				scriptManager.GetPackageManagerCall.Returns.String = "npm"
-
 				npmExec.ExecuteCall.Stub = func(execution pexec.Execution) error {
 					fmt.Fprintln(execution.Stdout, "some stdout output")
 					fmt.Fprintln(execution.Stderr, "some stderr output")
@@ -232,10 +250,10 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					},
 					Layers: packit.Layers{Path: layersDir},
 				})
+				Expect(err).To(MatchError("some execute error"))
 
 				Expect(loggerBuffer.String()).To(ContainSubstring("some stdout output"))
 				Expect(loggerBuffer.String()).To(ContainSubstring("some stderr output"))
-				Expect(err).To(MatchError("some execute error"))
 			})
 		})
 	})

@@ -1,10 +1,8 @@
 package noderunscript
 
 import (
-	"bytes"
-	"os"
+	"fmt"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/paketo-buildpacks/packit/v2"
@@ -18,63 +16,46 @@ type Executable interface {
 	Execute(execution pexec.Execution) error
 }
 
-//go:generate faux --interface PackageInterface -o fakes/package_interface.go
-type PackageInterface interface {
-	GetPackageScripts(path string) (map[string]string, error)
-	GetPackageManager(path string) string
-}
-
-func Build(npmExec Executable, yarnExec Executable, scriptManager PackageInterface, clock chronos.Clock, logger scribe.Logger) packit.BuildFunc {
+func Build(npm Executable, yarn Executable, clock chronos.Clock, logger scribe.Logger, env Environment) packit.BuildFunc {
 	return func(context packit.BuildContext) (packit.BuildResult, error) {
 		logger.Title("%s %s", context.BuildpackInfo.Name, context.BuildpackInfo.Version)
 
-		projectDir := context.WorkingDir
-		envProjectPath, exists := os.LookupEnv("BP_NODE_PROJECT_PATH")
-		if exists {
-			projectDir = filepath.Join(context.WorkingDir, envProjectPath)
+		projectDir := filepath.Join(context.WorkingDir, env.NodeProjectPath)
+		scripts, packageManager, err := ScriptsToRun(projectDir, env.NodeRunScripts)
+		if err != nil {
+			return packit.BuildResult{}, fmt.Errorf("failed to find scripts to run: %w", err)
 		}
 
-		execBuffer := bytes.NewBuffer(nil)
-		mainExecutable := npmExec
-		execution := pexec.Execution{
-			Dir:    projectDir,
-			Args:   []string{"run-script", ""},
-			Stdout: execBuffer,
-			Stderr: execBuffer,
-		}
-
-		packageManager := scriptManager.GetPackageManager(projectDir)
+		exec := npm
 		if packageManager == "yarn" {
-			mainExecutable = yarnExec
-			execution.Args[0] = "run"
+			exec = yarn
 		}
-
-		envScripts := strings.Split(os.Getenv("BP_NODE_RUN_SCRIPTS"), ",")
 
 		logger.Process("Executing build process")
-		logger.Subprocess("Executing scripts")
-
 		duration, err := clock.Measure(func() error {
-			for _, script := range envScripts {
-				script = strings.TrimSpace(script)
-				logger.Action("Running '%s %s %s'", packageManager, execution.Args[0], script)
+			for _, script := range scripts {
+				logger.Subprocess("Running '%s %s %s'", packageManager, "run", script)
 
-				execution.Args[1] = script
-				err := mainExecutable.Execute(execution)
-
-				logger.Detail("%s", execBuffer)
+				err := exec.Execute(pexec.Execution{
+					Dir:    projectDir,
+					Args:   []string{"run", script},
+					Stdout: logger.ActionWriter,
+					Stderr: logger.ActionWriter,
+				})
 				if err != nil {
 					return err
 				}
-				execBuffer.Reset()
+
+				logger.Break()
 			}
+
 			return nil
 		})
 		if err != nil {
 			return packit.BuildResult{}, err
 		}
 
-		logger.Action("Completed in %s", duration.Round(time.Millisecond))
+		logger.Subprocess("Completed in %s", duration.Round(time.Millisecond))
 		logger.Break()
 
 		return packit.BuildResult{}, nil

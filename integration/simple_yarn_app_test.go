@@ -70,19 +70,19 @@ func testSimpleYarnApp(t *testing.T, context spec.G, it spec.S) {
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
 				"  Executing build process",
-				"    Executing scripts",
-				"      Running 'yarn run test_script_1'",
-				MatchRegexp(`        yarn run v\d+\.\d+\.\d+`),
-				"        $ echo \"some commands\"",
-				"        some commands",
-				MatchRegexp(`      Done in \d+\.\d+s\.`),
-				"        ",
-				"      Running 'yarn run test_script_2'",
-				MatchRegexp(`        yarn run v\d+\.\d+\.\d+`),
-				"        $ touch dummyfile.txt",
-				MatchRegexp(`      Done in \d+\.\d+s\.`),
+				"    Running 'yarn run test_script_1'",
+				MatchRegexp(`      yarn run v\d+\.\d+\.\d+`),
+				"      $ echo \"some commands\"",
+				"      some commands",
+				MatchRegexp(`    Done in \d+\.\d+s\.`),
+				"",
+				"    Running 'yarn run test_script_2'",
+				MatchRegexp(`      yarn run v\d+\.\d+\.\d+`),
+				"      $ touch dummyfile.txt",
+				MatchRegexp(`    Done in \d+\.\d+s\.`),
+				"",
+				MatchRegexp(`    Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
 			))
-			Expect(logs).To(ContainLines(MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`)))
 
 			container, err = docker.Container.Run.
 				WithCommand("ls -al /workspace/").
