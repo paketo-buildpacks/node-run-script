@@ -9,14 +9,9 @@ import (
 )
 
 func ScriptsToRun(workingDir string, nodeRunScripts string) ([]string, string, error) {
-	scripts := []string{"build"}
-	manager := "npm"
-
-	if nodeRunScripts != "" {
-		scripts = strings.Split(nodeRunScripts, ",")
-		for i := range scripts {
-			scripts[i] = strings.TrimSpace(scripts[i])
-		}
+	scripts := strings.Split(nodeRunScripts, ",")
+	for i := range scripts {
+		scripts[i] = strings.TrimSpace(scripts[i])
 	}
 
 	file, err := os.Open(filepath.Join(workingDir, "package.json"))
@@ -43,6 +38,7 @@ func ScriptsToRun(workingDir string, nodeRunScripts string) ([]string, string, e
 		return nil, "", fmt.Errorf("could not find script(s) %s in package.json", missing)
 	}
 
+	manager := "npm"
 	_, err = os.Stat(filepath.Join(workingDir, "yarn.lock"))
 	if err == nil {
 		manager = "yarn"

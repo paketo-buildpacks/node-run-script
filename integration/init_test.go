@@ -51,6 +51,7 @@ var settings struct {
 
 func TestIntegration(t *testing.T) {
 	Expect := NewWithT(t).Expect
+	SetDefaultEventuallyTimeout(10 * time.Second)
 
 	file, err := os.Open("../integration.json")
 	Expect(err).NotTo(HaveOccurred())
@@ -90,13 +91,14 @@ func TestIntegration(t *testing.T) {
 		Execute(settings.Config.YarnInstall)
 	Expect(err).NotTo(HaveOccurred())
 
-	SetDefaultEventuallyTimeout(10 * time.Second)
+	pack := occam.NewPack()
+	docker := occam.NewDocker()
 
 	suite := spec.New("Integration", spec.Report(report.Terminal{}), spec.Parallel())
-	suite("SimpleYarnApp", testSimpleYarnApp)
-	suite("SimpleNPMApp", testSimpleNPMApp)
-	suite("ProjectPathApp", testProjectPathApp)
-	suite("VueNPMApp", testVueNPMApp)
-	suite("VueYarnApp", testVueYarnApp)
+	suite("SimpleYarnApp", testSimpleYarnApp(pack, docker))
+	suite("SimpleNPMApp", testSimpleNPMApp(pack, docker))
+	suite("ProjectPathApp", testProjectPathApp(pack, docker))
+	suite("VueNPMApp", testVueNPMApp(pack, docker))
+	suite("VueYarnApp", testVueYarnApp(pack, docker))
 	suite.Run(t)
 }

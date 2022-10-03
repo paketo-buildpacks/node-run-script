@@ -33,7 +33,9 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 			}
 		}`), 0600)).To(Succeed())
 
-		detect = noderunscript.Detect(noderunscript.Environment{})
+		detect = noderunscript.Detect(noderunscript.Environment{
+			NodeRunScripts: "build",
+		})
 	})
 
 	it.After(func() {
@@ -104,6 +106,19 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 				WorkingDir: workingDir,
 			})
 			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	context("when env var $BP_NODE_RUN_SCRIPTS is empty", func() {
+		it.Before(func() {
+			detect = noderunscript.Detect(noderunscript.Environment{NodeRunScripts: ""})
+		})
+
+		it("fails detection", func() {
+			_, err := detect(packit.DetectContext{
+				WorkingDir: workingDir,
+			})
+			Expect(err).To(MatchError(packit.Fail.WithMessage(`script running has been deactivated: BP_NODE_RUN_SCRIPTS=""`)))
 		})
 	})
 

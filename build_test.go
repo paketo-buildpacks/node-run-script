@@ -68,7 +68,9 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		loggerBuffer = bytes.NewBuffer(nil)
 		logger = scribe.NewLogger(loggerBuffer)
 
-		build = noderunscript.Build(npmExec, yarnExec, clock, logger, noderunscript.Environment{})
+		build = noderunscript.Build(npmExec, yarnExec, clock, logger, noderunscript.Environment{
+			NodeRunScripts: "build",
+		})
 	})
 
 	it.After(func() {
@@ -174,6 +176,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Expect(fs.Move(filepath.Join(workingDir, "package.json"), filepath.Join(workingDir, customPath, "package.json"))).To(Succeed())
 
 			build = noderunscript.Build(npmExec, yarnExec, clock, logger, noderunscript.Environment{
+				NodeRunScripts:  "build",
 				NodeProjectPath: customPath,
 			})
 		})
