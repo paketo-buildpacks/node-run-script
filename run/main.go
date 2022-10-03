@@ -11,11 +11,7 @@ import (
 )
 
 func main() {
-	environment := noderunscript.Environment{
-		NodeRunScripts:  os.Getenv("BP_NODE_RUN_SCRIPTS"),
-		NodeProjectPath: os.Getenv("BP_NODE_PROJECT_PATH"),
-		LogLevel:        os.Getenv("BP_LOG_LEVEL"),
-	}
+	environment := noderunscript.LoadEnvironment(os.Environ())
 
 	packit.Run(
 		noderunscript.Detect(environment),

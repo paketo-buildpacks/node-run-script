@@ -8,9 +8,10 @@ import (
 )
 
 func TestUnitNodeRunScript(t *testing.T) {
-	suite := spec.New("node-run-script", spec.Report(report.Terminal{}), spec.Sequential())
+	suite := spec.New("node-run-script", spec.Report(report.Terminal{}), spec.Parallel())
 	suite("Build", testBuild)
 	suite("Detect", testDetect)
+	suite("Environment", testEnvironment)
 	suite("Scripts", testScripts)
 	suite.Run(t)
 }
