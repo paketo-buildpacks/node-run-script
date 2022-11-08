@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/onsi/gomega/format"
 	"github.com/paketo-buildpacks/occam"
 	"github.com/sclevine/spec"
 	"github.com/sclevine/spec/report"
@@ -50,6 +51,7 @@ var settings struct {
 }
 
 func TestIntegration(t *testing.T) {
+	format.MaxLength = 0
 	Expect := NewWithT(t).Expect
 	SetDefaultEventuallyTimeout(10 * time.Second)
 
