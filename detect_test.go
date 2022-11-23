@@ -169,12 +169,12 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 				Expect(os.Remove(filepath.Join(workingDir, "package.json"))).To(Succeed())
 			})
 
-			it("returns a failure", func() {
+			it("fails detection", func() {
 				_, err := detect(packit.DetectContext{
 					WorkingDir: workingDir,
 				})
 
-				Expect(err).To(MatchError(ContainSubstring("no such file or directory")))
+				Expect(err).To(MatchError(packit.Fail))
 			})
 		})
 
@@ -202,12 +202,12 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 				})
 			})
 
-			it("returns an error", func() {
+			it("fails detection", func() {
 				_, err := detect(packit.DetectContext{
 					WorkingDir: workingDir,
 				})
 
-				Expect(err).To(MatchError(ContainSubstring("no such file or directory")))
+				Expect(err).To(MatchError(packit.Fail))
 			})
 		})
 	})
