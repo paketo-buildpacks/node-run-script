@@ -1,6 +1,8 @@
 package noderunscript
 
 import (
+	"errors"
+	"os"
 	"path/filepath"
 
 	"github.com/paketo-buildpacks/packit/v2"
@@ -18,6 +20,10 @@ func Detect(env Environment) packit.DetectFunc {
 
 		_, packageManager, err := ScriptsToRun(filepath.Join(context.WorkingDir, env.NodeProjectPath), env.NodeRunScripts)
 		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return packit.DetectResult{}, packit.Fail
+			}
+
 			return packit.DetectResult{}, err
 		}
 
