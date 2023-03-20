@@ -71,13 +71,15 @@ func testSimpleNPMApp(pack occam.Pack, docker occam.Docker) func(*testing.T, spe
 					"      > echo \"some commands\"",
 					"      ",
 					"      some commands",
-					"",
+				))
+				Expect(logs).To(ContainLines(
 					"    Running 'npm run test_script_2'",
 					"      ",
 					MatchRegexp(`      > simple_npm_app@\d+\.\d+\.\d+ test_script_2`),
 					"      > touch dummyfile.txt",
 					"      ",
-					"",
+				))
+				Expect(logs).To(ContainLines(
 					MatchRegexp(`    Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
 				))
 

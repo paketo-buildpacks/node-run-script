@@ -70,7 +70,8 @@ func testProjectPathApp(pack occam.Pack, docker occam.Docker) func(*testing.T, s
 					"      $ echo \"some commands\"",
 					"      some commands",
 					MatchRegexp(`    Done in \d+\.\d+s\.`),
-					"",
+				))
+				Expect(logs).To(ContainLines(
 					"    Running 'yarn run test_script_2'",
 					MatchRegexp(`      yarn run v\d+\.\d+\.\d+$`),
 					"      $ touch dummyfile.txt",
