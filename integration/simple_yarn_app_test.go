@@ -68,12 +68,14 @@ func testSimpleYarnApp(pack occam.Pack, docker occam.Docker) func(*testing.T, sp
 					"      $ echo \"some commands\"",
 					"      some commands",
 					MatchRegexp(`    Done in \d+\.\d+s\.`),
-					"",
+				))
+				Expect(logs).To(ContainLines(
 					"    Running 'yarn run test_script_2'",
 					MatchRegexp(`      yarn run v\d+\.\d+\.\d+`),
 					"      $ touch dummyfile.txt",
 					MatchRegexp(`    Done in \d+\.\d+s\.`),
-					"",
+				))
+				Expect(logs).To(ContainLines(
 					MatchRegexp(`    Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
 				))
 
