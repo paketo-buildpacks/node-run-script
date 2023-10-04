@@ -18,6 +18,10 @@ func testVueNPMApp(pack occam.Pack, docker occam.Docker) func(*testing.T, spec.G
 		var (
 			Expect     = NewWithT(t).Expect
 			Eventually = NewWithT(t).Eventually
+
+			pullPolicy              = "never"
+			extenderBuildStr        = ""
+			extenderBuildStrEscaped = ""
 		)
 
 		context("when building a Vue npm app", func() {
@@ -33,6 +37,12 @@ func testVueNPMApp(pack occam.Pack, docker occam.Docker) func(*testing.T, spec.G
 				var err error
 				name, err = occam.RandomName()
 				Expect(err).NotTo(HaveOccurred())
+
+				if settings.Extensions.UbiNodejsExtension.Online != "" {
+					pullPolicy = "always"
+					extenderBuildStr = "[extender (build)] "
+					extenderBuildStrEscaped = `\[extender \(build\)\] `
+				}
 			})
 
 			it.After(func() {
@@ -49,27 +59,30 @@ func testVueNPMApp(pack occam.Pack, docker occam.Docker) func(*testing.T, spec.G
 
 				var logs fmt.Stringer
 				image, logs, err = pack.WithNoColor().Build.
+					WithExtensions(
+						settings.Extensions.UbiNodejsExtension.Online,
+					).
 					WithBuildpacks(
 						settings.Buildpacks.NodeEngine.Online,
 						settings.Buildpacks.NPMInstall.Online,
 						settings.Buildpacks.NodeRunScript.Online,
 					).
-					WithPullPolicy("never").
+					WithPullPolicy(pullPolicy).
 					Execute(name, source)
 				Expect(err).NotTo(HaveOccurred(), logs.String())
 
 				Expect(logs).To(ContainLines(
-					MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
-					"  Executing build process",
-					"    Running 'npm run build'",
-					"      ",
-					MatchRegexp(`      > vue_app@\d+\.\d+\.\d+ build`),
-					"      > vue-cli-service build",
+					MatchRegexp(fmt.Sprintf(`%s%s \d+\.\d+\.\d+`, extenderBuildStrEscaped, settings.Buildpack.Name)),
+					extenderBuildStr+"  Executing build process",
+					extenderBuildStr+"    Running 'npm run build'",
+					extenderBuildStr+"      ",
+					MatchRegexp(extenderBuildStrEscaped+`      > vue_app@\d+\.\d+\.\d+ build`),
+					extenderBuildStr+"      > vue-cli-service build",
 				))
 				Expect(logs).To(ContainLines(
-					"       DONE  Build complete. The dist directory is ready to be deployed.",
+					extenderBuildStr + "       DONE  Build complete. The dist directory is ready to be deployed.",
 				))
-				Expect(logs).To(ContainLines(MatchRegexp(`    Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`)))
+				Expect(logs).To(ContainLines(MatchRegexp(extenderBuildStrEscaped + `    Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`)))
 
 				container, err = docker.Container.Run.
 					WithCommand("ls -al /workspace/dist/").

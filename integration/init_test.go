@@ -38,15 +38,21 @@ var settings struct {
 			Online string
 		}
 	}
+	Extensions struct {
+		UbiNodejsExtension struct {
+			Online string
+		}
+	}
 	Buildpack struct {
 		ID   string
 		Name string
 	}
 	Config struct {
-		NodeEngine  string `json:"node-engine"`
-		NPMInstall  string `json:"npm-install"`
-		Yarn        string `json:"yarn"`
-		YarnInstall string `json:"yarn-install"`
+		NodeEngine         string `json:"node-engine"`
+		NPMInstall         string `json:"npm-install"`
+		Yarn               string `json:"yarn"`
+		YarnInstall        string `json:"yarn-install"`
+		UbiNodejsExtension string `json:"ubi-nodejs-extension"`
 	}
 }
 
@@ -72,6 +78,17 @@ func TestIntegration(t *testing.T) {
 
 	buildpackStore := occam.NewBuildpackStore()
 
+	pack := occam.NewPack()
+
+	builder, err := pack.Builder.Inspect.Execute()
+	Expect(err).NotTo(HaveOccurred())
+
+		settings.Extensions.UbiNodejsExtension.Online, err = buildpackStore.Get.
+			Execute(settings.Config.UbiNodejsExtension)
+		Expect(err).ToNot(HaveOccurred())
+	if builder.BuilderName == "paketocommunity/builder-ubi-buildpackless-base" {
+	}
+
 	settings.Buildpacks.NodeRunScript.Online, err = buildpackStore.Get.
 		WithVersion("1.2.3").
 		Execute(root)
@@ -93,13 +110,12 @@ func TestIntegration(t *testing.T) {
 		Execute(settings.Config.YarnInstall)
 	Expect(err).NotTo(HaveOccurred())
 
-	pack := occam.NewPack()
 	docker := occam.NewDocker()
 
 	suite := spec.New("Integration", spec.Report(report.Terminal{}), spec.Parallel())
-	suite("SimpleYarnApp", testSimpleYarnApp(pack, docker))
-	suite("SimpleNPMApp", testSimpleNPMApp(pack, docker))
 	suite("ProjectPathApp", testProjectPathApp(pack, docker))
+	suite("SimpleNPMApp", testSimpleNPMApp(pack, docker))
+	suite("SimpleYarnApp", testSimpleYarnApp(pack, docker))
 	suite("VueNPMApp", testVueNPMApp(pack, docker))
 	suite("VueYarnApp", testVueYarnApp(pack, docker))
 	suite.Run(t)
