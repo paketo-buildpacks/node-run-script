@@ -18,6 +18,10 @@ func testSimpleYarnApp(pack occam.Pack, docker occam.Docker) func(*testing.T, sp
 		var (
 			Expect     = NewWithT(t).Expect
 			Eventually = NewWithT(t).Eventually
+
+			pullPolicy              = "never"
+			extenderBuildStr        = ""
+			extenderBuildStrEscaped = ""
 		)
 
 		context("when building a simple yarn app", func() {
@@ -33,6 +37,12 @@ func testSimpleYarnApp(pack occam.Pack, docker occam.Docker) func(*testing.T, sp
 				var err error
 				name, err = occam.RandomName()
 				Expect(err).NotTo(HaveOccurred())
+
+				if settings.Extensions.UbiNodejsExtension.Online != "" {
+					pullPolicy = "always"
+					extenderBuildStr = "[extender (build)] "
+					extenderBuildStrEscaped = `\[extender \(build\)\] `
+				}
 			})
 
 			it.After(func() {
@@ -49,6 +59,9 @@ func testSimpleYarnApp(pack occam.Pack, docker occam.Docker) func(*testing.T, sp
 
 				var logs fmt.Stringer
 				image, logs, err = pack.WithNoColor().Build.
+					WithExtensions(
+						settings.Extensions.UbiNodejsExtension.Online,
+					).
 					WithBuildpacks(
 						settings.Buildpacks.NodeEngine.Online,
 						settings.Buildpacks.Yarn.Online,
@@ -56,27 +69,27 @@ func testSimpleYarnApp(pack occam.Pack, docker occam.Docker) func(*testing.T, sp
 						settings.Buildpacks.NodeRunScript.Online,
 					).
 					WithEnv(map[string]string{"BP_NODE_RUN_SCRIPTS": "test_script_1,test_script_2"}).
-					WithPullPolicy("never").
+					WithPullPolicy(pullPolicy).
 					Execute(name, source)
 				Expect(err).NotTo(HaveOccurred(), logs.String())
 
 				Expect(logs).To(ContainLines(
-					MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
-					"  Executing build process",
-					"    Running 'yarn run test_script_1'",
-					MatchRegexp(`      yarn run v\d+\.\d+\.\d+`),
-					"      $ echo \"some commands\"",
-					"      some commands",
-					MatchRegexp(`    Done in \d+\.\d+s\.`),
+					MatchRegexp(fmt.Sprintf(`%s%s \d+\.\d+\.\d+`, extenderBuildStrEscaped, settings.Buildpack.Name)),
+					extenderBuildStr+"  Executing build process",
+					extenderBuildStr+"    Running 'yarn run test_script_1'",
+					MatchRegexp(extenderBuildStrEscaped+`      yarn run v\d+\.\d+\.\d+`),
+					extenderBuildStr+"      $ echo \"some commands\"",
+					extenderBuildStr+"      some commands",
+					MatchRegexp(extenderBuildStrEscaped+`      Done in \d+\.\d+s\.`),
 				))
 				Expect(logs).To(ContainLines(
-					"    Running 'yarn run test_script_2'",
-					MatchRegexp(`      yarn run v\d+\.\d+\.\d+`),
-					"      $ touch dummyfile.txt",
-					MatchRegexp(`    Done in \d+\.\d+s\.`),
+					extenderBuildStr+"    Running 'yarn run test_script_2'",
+					MatchRegexp(extenderBuildStrEscaped+`      yarn run v\d+\.\d+\.\d+`),
+					extenderBuildStr+"      $ touch dummyfile.txt",
+					MatchRegexp(extenderBuildStrEscaped+`      Done in \d+\.\d+s\.`),
 				))
 				Expect(logs).To(ContainLines(
-					MatchRegexp(`    Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
+					MatchRegexp(extenderBuildStrEscaped + `    Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
 				))
 
 				container, err = docker.Container.Run.
