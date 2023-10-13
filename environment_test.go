@@ -14,15 +14,13 @@ func testEnvironment(t *testing.T, context spec.G, it spec.S) {
 
 	it("returns a parsed environment", func() {
 		environment := noderunscript.LoadEnvironment([]string{
-			"BP_NODE_PROJECT_PATH=some-node-project-path-value",
 			"BP_NODE_RUN_SCRIPTS=some-node-run-scripts-value",
 			"LOG_LEVEL=some-log-level-value",
 		})
 
 		Expect(environment).To(Equal(noderunscript.Environment{
-			LogLevel:        "some-log-level-value",
-			NodeProjectPath: "some-node-project-path-value",
-			NodeRunScripts:  "some-node-run-scripts-value",
+			LogLevel:       "some-log-level-value",
+			NodeRunScripts: "some-node-run-scripts-value",
 		}))
 	})
 
@@ -31,9 +29,8 @@ func testEnvironment(t *testing.T, context spec.G, it spec.S) {
 			environment := noderunscript.LoadEnvironment([]string{})
 
 			Expect(environment).To(Equal(noderunscript.Environment{
-				LogLevel:        "INFO",
-				NodeProjectPath: ".",
-				NodeRunScripts:  "build",
+				LogLevel:       "INFO",
+				NodeRunScripts: "build",
 			}))
 		})
 	})
@@ -41,7 +38,6 @@ func testEnvironment(t *testing.T, context spec.G, it spec.S) {
 	context("when explicit empty values are given", func() {
 		it("uses the empty values", func() {
 			environment := noderunscript.LoadEnvironment([]string{
-				"BP_NODE_PROJECT_PATH=",
 				"BP_NODE_RUN_SCRIPTS=",
 				"LOG_LEVEL=",
 			})
