@@ -3,8 +3,8 @@ package noderunscript
 import (
 	"errors"
 	"os"
-	"path/filepath"
 
+	"github.com/paketo-buildpacks/libnodejs"
 	"github.com/paketo-buildpacks/packit/v2"
 )
 
@@ -18,7 +18,11 @@ func Detect(env Environment) packit.DetectFunc {
 			return packit.DetectResult{}, packit.Fail.WithMessage(`script running has been deactivated: BP_NODE_RUN_SCRIPTS=""`)
 		}
 
-		_, packageManager, err := ScriptsToRun(filepath.Join(context.WorkingDir, env.NodeProjectPath), env.NodeRunScripts)
+		projectDir, err := libnodejs.FindProjectPath(context.WorkingDir)
+		if err != nil {
+			return packit.DetectResult{}, err
+		}
+		_, packageManager, err := ScriptsToRun(projectDir, env.NodeRunScripts)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				return packit.DetectResult{}, packit.Fail.WithMessage("no package.json file present")

@@ -2,9 +2,9 @@ package noderunscript
 
 import (
 	"fmt"
-	"path/filepath"
 	"time"
 
+	"github.com/paketo-buildpacks/libnodejs"
 	"github.com/paketo-buildpacks/packit/v2"
 	"github.com/paketo-buildpacks/packit/v2/chronos"
 	"github.com/paketo-buildpacks/packit/v2/pexec"
@@ -20,7 +20,10 @@ func Build(npm Executable, yarn Executable, clock chronos.Clock, logger scribe.L
 	return func(context packit.BuildContext) (packit.BuildResult, error) {
 		logger.Title("%s %s", context.BuildpackInfo.Name, context.BuildpackInfo.Version)
 
-		projectDir := filepath.Join(context.WorkingDir, env.NodeProjectPath)
+		projectDir, err := libnodejs.FindProjectPath(context.WorkingDir)
+		if err != nil {
+			return packit.BuildResult{}, err
+		}
 		scripts, packageManager, err := ScriptsToRun(projectDir, env.NodeRunScripts)
 		if err != nil {
 			return packit.BuildResult{}, fmt.Errorf("failed to find scripts to run: %w", err)
