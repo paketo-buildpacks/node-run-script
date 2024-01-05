@@ -83,10 +83,10 @@ func TestIntegration(t *testing.T) {
 	builder, err := pack.Builder.Inspect.Execute()
 	Expect(err).NotTo(HaveOccurred())
 
+	if builder.BuilderName == "paketocommunity/builder-ubi-buildpackless-base" {
 		settings.Extensions.UbiNodejsExtension.Online, err = buildpackStore.Get.
 			Execute(settings.Config.UbiNodejsExtension)
 		Expect(err).ToNot(HaveOccurred())
-	if builder.BuilderName == "paketocommunity/builder-ubi-buildpackless-base" {
 	}
 
 	settings.Buildpacks.NodeRunScript.Online, err = buildpackStore.Get.
