@@ -1,11 +1,12 @@
 package noderunscript
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/paketo-buildpacks/libnodejs"
 )
 
 func ScriptsToRun(workingDir string, nodeRunScripts string) ([]string, string, error) {
@@ -14,23 +15,14 @@ func ScriptsToRun(workingDir string, nodeRunScripts string) ([]string, string, e
 		scripts[i] = strings.TrimSpace(scripts[i])
 	}
 
-	file, err := os.Open(filepath.Join(workingDir, "package.json"))
-	if err != nil {
-		return nil, "", err
-	}
-	defer file.Close()
-
-	var pkg struct {
-		Scripts map[string]string `json:"scripts"`
-	}
-	err = json.NewDecoder(file).Decode(&pkg)
+	packageJSON, err := libnodejs.ParsePackageJSON(workingDir)
 	if err != nil {
 		return nil, "", err
 	}
 
 	var missing []string
 	for _, script := range scripts {
-		if _, ok := pkg.Scripts[script]; !ok {
+		if _, ok := packageJSON.AllScripts[script]; !ok {
 			missing = append(missing, script)
 		}
 	}
