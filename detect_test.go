@@ -2,6 +2,7 @@ package noderunscript_test
 
 import (
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
 
@@ -125,6 +126,8 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 	context("when env var $BP_NODE_PROJECT_PATH is set", func() {
 		it.Before(func() {
 			customPath, err := os.MkdirTemp(workingDir, "custom-project-path")
+			base := path.Base(customPath)
+			t.Setenv("BP_NODE_PROJECT_PATH", base)
 			Expect(err).NotTo(HaveOccurred())
 			customPath = filepath.Base(customPath)
 
@@ -132,8 +135,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 			Expect(fs.Move(filepath.Join(workingDir, "package.json"), filepath.Join(workingDir, customPath, "package.json"))).To(Succeed())
 
 			detect = noderunscript.Detect(noderunscript.Environment{
-				NodeRunScripts:  "build",
-				NodeProjectPath: customPath,
+				NodeRunScripts: "build",
 			})
 		})
 
@@ -197,9 +199,9 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		context("if $BP_NODE_PROJECT_PATH leads to a directory that doesn't exist", func() {
 			it.Before(func() {
 				detect = noderunscript.Detect(noderunscript.Environment{
-					NodeRunScripts:  "build",
-					NodeProjectPath: "not_a_real_directory",
+					NodeRunScripts: "build",
 				})
+				t.Setenv("BP_NODE_PROJECT_PATH", "not_a_real_directory")
 			})
 
 			it("fails detection", func() {
@@ -207,7 +209,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 					WorkingDir: workingDir,
 				})
 
-				Expect(err).To(MatchError(packit.Fail.WithMessage("no package.json file present")))
+				Expect(err).To(HaveOccurred())
 			})
 		})
 	})

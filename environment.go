@@ -1,18 +1,18 @@
 package noderunscript
 
-import "strings"
+import (
+	"strings"
+)
 
 type Environment struct {
-	LogLevel        string
-	NodeProjectPath string
-	NodeRunScripts  string
+	LogLevel       string
+	NodeRunScripts string
 }
 
 func LoadEnvironment(variables []string) Environment {
 	environment := Environment{
-		LogLevel:        "INFO",
-		NodeProjectPath: ".",
-		NodeRunScripts:  "build",
+		LogLevel:       "INFO",
+		NodeRunScripts: "build",
 	}
 
 	for _, variable := range variables {
@@ -21,8 +21,6 @@ func LoadEnvironment(variables []string) Environment {
 			switch key {
 			case "LOG_LEVEL":
 				environment.LogLevel = value
-			case "BP_NODE_PROJECT_PATH":
-				environment.NodeProjectPath = value
 			case "BP_NODE_RUN_SCRIPTS":
 				environment.NodeRunScripts = value
 			}

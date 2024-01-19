@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
 	"time"
@@ -169,6 +170,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			var err error
 			projectPath, err = os.MkdirTemp(workingDir, "custom-project-path")
 			Expect(err).NotTo(HaveOccurred())
+			base := path.Base(projectPath)
+			t.Setenv("BP_NODE_PROJECT_PATH", base)
 
 			customPath := filepath.Base(projectPath)
 
@@ -176,8 +179,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Expect(fs.Move(filepath.Join(workingDir, "package.json"), filepath.Join(workingDir, customPath, "package.json"))).To(Succeed())
 
 			build = noderunscript.Build(npmExec, yarnExec, clock, logger, noderunscript.Environment{
-				NodeRunScripts:  "build",
-				NodeProjectPath: customPath,
+				NodeRunScripts: "build",
 			})
 		})
 
