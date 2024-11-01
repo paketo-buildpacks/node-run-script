@@ -4,7 +4,7 @@ go 1.23.2
 
 require (
 	github.com/BurntSushi/toml v1.4.0
-	github.com/onsi/gomega v1.35.0
+	github.com/onsi/gomega v1.35.1
 	github.com/paketo-buildpacks/libnodejs v0.3.0
 	github.com/paketo-buildpacks/occam v0.18.8
 	github.com/paketo-buildpacks/packit/v2 v2.15.0
