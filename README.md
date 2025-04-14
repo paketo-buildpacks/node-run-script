@@ -1,6 +1,6 @@
 # Node Run Script Cloud Native Buildpack
 
-## `gcr.io/paketo-buildpacks/node-run-script`
+## `docker.io/paketobuildpacks/node-run-script`
 
 The Node Run Script CNB runs any arbitrary scripts desired for the given application. The scripts
 run are determined by the environment variable `BP_NODE_RUN_SCRIPTS` and run scripts specified in
