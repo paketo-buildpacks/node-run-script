@@ -234,8 +234,11 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		context("when the script getting run has an error", func() {
 			it.Before(func() {
 				npmExec.ExecuteCall.Stub = func(execution pexec.Execution) error {
-					fmt.Fprintln(execution.Stdout, "some stdout output")
-					fmt.Fprintln(execution.Stderr, "some stderr output")
+					_, err := fmt.Fprintln(execution.Stdout, "some stdout output")
+					Expect(err).NotTo(HaveOccurred())
+
+					_, err = fmt.Fprintln(execution.Stderr, "some stderr output")
+					Expect(err).NotTo(HaveOccurred())
 
 					return fmt.Errorf("some execute error")
 				}
