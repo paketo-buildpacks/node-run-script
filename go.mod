@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/onsi/gomega v1.38.2
 	github.com/paketo-buildpacks/libnodejs v0.4.0
-	github.com/paketo-buildpacks/occam v0.29.0
+	github.com/paketo-buildpacks/occam v0.29.1
 	github.com/paketo-buildpacks/packit/v2 v2.23.0
 	github.com/sclevine/spec v1.4.0
 )
@@ -65,7 +65,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.38.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.15 // indirect
 	github.com/tklauser/numcpus v0.10.0 // indirect
-	github.com/ulikunitz/xz v0.5.13 // indirect
+	github.com/ulikunitz/xz v0.5.14 // indirect
 	github.com/vbatts/tar-split v0.12.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
