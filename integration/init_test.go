@@ -61,17 +61,16 @@ func TestIntegration(t *testing.T) {
 	Expect := NewWithT(t).Expect
 	SetDefaultEventuallyTimeout(10 * time.Second)
 
-	file, err := os.Open("../integration.json")
+	integrationFile, err := os.Open("../integration.json")
 	Expect(err).NotTo(HaveOccurred())
-	defer file.Close()
+	Expect(json.NewDecoder(integrationFile).Decode(&settings.Config)).To(Succeed())
+	Expect(integrationFile.Close()).To(Succeed())
 
-	Expect(json.NewDecoder(file).Decode(&settings.Config)).To(Succeed())
-
-	file, err = os.Open("../buildpack.toml")
+	buildpackFile, err := os.Open("../buildpack.toml")
 	Expect(err).NotTo(HaveOccurred())
-
-	_, err = toml.NewDecoder(file).Decode(&settings)
+	_, err = toml.NewDecoder(buildpackFile).Decode(&settings)
 	Expect(err).NotTo(HaveOccurred())
+	Expect(buildpackFile.Close()).To(Succeed())
 
 	root, err := filepath.Abs("./..")
 	Expect(err).ToNot(HaveOccurred())
